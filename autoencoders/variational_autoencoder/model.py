@@ -85,7 +85,8 @@ def build_encoder(
         image_height: int,
         image_width: int,
         n_channels: int,
-        embedding_dim: int) -> tuple[models.Model, tuple[int]]:
+        embedding_dim: int,
+        print_summary: bool = False) -> tuple[models.Model, tuple[int]]:
 
     encoder_in = layers.Input(
         shape=(image_height, image_width, n_channels), name="encoder_in"
@@ -101,7 +102,9 @@ def build_encoder(
     encoder_out_sample = SamplingLayer()([encoder_out_mean, encoder_out_log_var])
 
     encoder = models.Model(encoder_in, [encoder_out_mean, encoder_out_log_var, encoder_out_sample])
-    print(encoder.summary())
+
+    if print_summary:
+        print(encoder.summary())
 
     return encoder, shape_before_flatten
 
@@ -109,7 +112,8 @@ def build_encoder(
 def build_decoder(
         n_channels: int,
         embedding_dim: int,
-        shape_before_flatten: tuple[int]) -> models.Model:
+        shape_before_flatten: tuple[int],
+        print_summary: bool = False) -> models.Model:
 
     decoder_in = layers.Input(shape=(embedding_dim,), name="decoder_in")
     x = layers.Dense(np.prod(shape_before_flatten))(decoder_in)
@@ -127,21 +131,8 @@ def build_decoder(
     )(x)
 
     decoder = models.Model(decoder_in, decoder_out)
-    print(decoder.summary())
+
+    if print_summary:
+        print(decoder.summary())
 
     return decoder
-
-
-def build_autoencoder(
-        image_height: int,
-        image_width: int,
-        n_channels: int,
-        embedding_dim: int) -> models.Model:
-
-    encoder, shape_before_flatten = build_encoder(
-        image_height, image_width, n_channels, embedding_dim)
-    decoder = build_decoder(n_channels, embedding_dim, shape_before_flatten)
-
-    encoder_decoder = VariationalAutoEncoder(encoder, decoder)
-
-    return encoder_decoder, encoder, decoder

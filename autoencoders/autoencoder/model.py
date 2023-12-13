@@ -1,14 +1,16 @@
-from tensorflow.keras import layers
-from tensorflow.keras import models
+from tensorflow.keras import layers, models
 import tensorflow.keras.backend as K
 
 import numpy as np
+
 
 def build_encoder(
         image_height: int,
         image_width: int,
         n_channels: int,
-        embedding_dim: int) -> tuple[models.Model, tuple[int], layers.Input, layers.Input]:
+        embedding_dim: int,
+        print_summary: bool = False) -> tuple[
+    models.Model, tuple[int], layers.Input, layers.Input]:
 
     encoder_in = layers.Input(
         shape=(image_height, image_width, n_channels), name="encoder_in"
@@ -22,7 +24,9 @@ def build_encoder(
     encoder_out = layers.Dense(embedding_dim, name="encoder_out")(x)
 
     encoder = models.Model(encoder_in, encoder_out)
-    print(encoder.summary())
+
+    if print_summary:
+        print(encoder.summary())
 
     return encoder, shape_before_flatten, encoder_in, encoder_out
 
@@ -30,7 +34,8 @@ def build_encoder(
 def build_decoder(
         n_channels: int,
         embedding_dim: int,
-        shape_before_flatten: tuple[int]) -> models.Model:
+        shape_before_flatten: tuple[int],
+        print_summary: bool = False) -> models.Model:
 
     decoder_in = layers.Input(shape=(embedding_dim,), name="decoder_in")
     x = layers.Dense(np.prod(shape_before_flatten))(decoder_in)
@@ -48,24 +53,7 @@ def build_decoder(
     )(x)
 
     decoder = models.Model(decoder_in, decoder_out)
-    print(decoder.summary())
+    if print_summary:
+        print(decoder.summary())
 
     return decoder
-
-
-def build_autoencoder(
-        image_height: int,
-        image_width: int,
-        n_channels: int,
-        embedding_dim: int) -> models.Model:
-
-    encoder, shape_before_flatten, encoder_in, encoder_out = build_encoder(
-        image_height, image_width, n_channels, embedding_dim)
-    decoder = build_decoder(n_channels, embedding_dim, shape_before_flatten)
-
-    encoder_decoder = models.Model(
-        encoder_in, decoder(encoder_out)
-    )
-    print(encoder_decoder.summary())
-
-    return encoder_decoder, encoder, decoder
