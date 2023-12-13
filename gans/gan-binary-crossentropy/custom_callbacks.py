@@ -32,7 +32,7 @@ class ImageGenerator(callbacks.Callback):
         self.num_img = num_img
         self.latent_dim = latent_dim
 
-    def on_epoch_end(self, epoch: int) -> None:
+    def on_epoch_end(self, epoch: int, logs=None) -> None:
         random_latent_vectors = tf.random.normal(
             shape=(self.num_img, self.latent_dim)
         )
