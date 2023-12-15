@@ -104,7 +104,7 @@ def build_encoder(
     encoder = models.Model(encoder_in, [encoder_out_mean, encoder_out_log_var, encoder_out_sample])
 
     if print_summary:
-        print(encoder.summary())
+        encoder.summary()
 
     return encoder, shape_before_flatten
 
@@ -133,6 +133,6 @@ def build_decoder(
     decoder = models.Model(decoder_in, decoder_out)
 
     if print_summary:
-        print(decoder.summary())
+        decoder.summary()
 
     return decoder
