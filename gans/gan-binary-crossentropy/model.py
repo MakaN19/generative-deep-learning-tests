@@ -1,27 +1,22 @@
-from tensorflow.keras import layers, models, losses, metrics
+from tensorflow.keras import layers, models, losses, metrics, optimizers
 import tensorflow as tf
 
 
 def build_generator(print_summary: bool = False) -> models.Model:
 
+    def conv2d_transpose_bn_relu(x, filters, kernel_size, strides=2, padding="SAME"):
+        x = layers.Conv2DTranspose(filters, strides=strides, kernel_size=kernel_size, padding=padding)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        return x
+
     generator_input = layers.Input(shape=(None, 100))
     x = layers.Reshape((1, 1, 100))(generator_input)
 
-    x = layers.Conv2DTranspose(128, strides=2, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2DTranspose(64, strides=2, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2DTranspose(32, strides=2, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2DTranspose(16, strides=2, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
+    x = conv2d_transpose_bn_relu(x, 128, 3)
+    x = conv2d_transpose_bn_relu(x, 64, 3)
+    x = conv2d_transpose_bn_relu(x, 32, 3)
+    x = conv2d_transpose_bn_relu(x, 16, 3)
 
     x = layers.Conv2DTranspose(1, strides=2, kernel_size=3,
                                padding="SAME", activation="sigmoid")(x)
@@ -29,54 +24,40 @@ def build_generator(print_summary: bool = False) -> models.Model:
     generator = models.Model(inputs=generator_input, outputs=x)
 
     if print_summary:
-        print(generator.summary())
+        generator.summary()
 
     return generator
 
 
 def build_discriminator(print_summary: bool = False) -> models.Model:
 
+    def conv2d_bn_relu(x, filters, kernel_size=3, strides=3, padding="SAME"):
+        x = layers.Conv2D(filters, strides=strides, kernel_size=kernel_size, padding=padding)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Dropout(0.3)(x)
+        x = layers.ReLU()(x)
+        return x
+
     discriminator_input = layers.Input(shape=(32, 32, 1))
-    x = layers.Conv2D(16, strides=3, kernel_size=3, padding="SAME")(discriminator_input)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2D(32, strides=3, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2D(64, strides=3, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2D(128, strides=3, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2D(128, strides=3, kernel_size=3, padding="SAME")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Activation("relu")(x)
-
+    x = conv2d_bn_relu(discriminator_input, 16)
+    x = conv2d_bn_relu(x, 32)
+    x = conv2d_bn_relu(x, 64)
+    x = conv2d_bn_relu(x, 128)
+    x = conv2d_bn_relu(x, 128)
     x = layers.Flatten()(x)
     x = layers.Dense(1, activation="sigmoid")(x)
-
 
     discriminator = models.Model(inputs=discriminator_input, outputs=x)
 
     if print_summary:
-        print(discriminator.summary())
+        discriminator.summary()
 
     return discriminator
 
 
 class GenerativeAdversarialNetwork(models.Model):
     def __init__(self, discriminator: models.Model,
-                 generator: models.Model, gen_input_dim: int):
+                 generator: models.Model, gen_input_dim: int) -> None:
         super().__init__()
         self.discriminator = discriminator
         self.generator = generator
@@ -89,7 +70,7 @@ class GenerativeAdversarialNetwork(models.Model):
         self.d_accuracy = None
 
 
-    def compile(self, d_optimizer, g_optimizer):
+    def compile(self, d_optimizer: optimizers.Optimizer, g_optimizer: optimizers.Optimizer) -> None:
         super().compile()
         self.g_optimizer = g_optimizer
         self.d_optimizer = d_optimizer
@@ -100,12 +81,12 @@ class GenerativeAdversarialNetwork(models.Model):
 
 
     @property
-    def metrics(self):
+    def metrics(self) -> list:
         return [
             self.d_loss_metric
         ]
 
-    def train_step(self, real_imgs):
+    def train_step(self, real_imgs: tf.Tensor) -> dict:
         batch_size = tf.shape(real_imgs)[0]
         gen_input = tf.random.normal(
             shape=(batch_size, self.gen_input_dim)
