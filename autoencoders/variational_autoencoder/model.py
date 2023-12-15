@@ -13,7 +13,7 @@ class SamplingLayer(layers.Layer):
 
 
 class VariationalAutoEncoder(models.Model):
-    def __init__(self, encoder: models.Model, decoder: models.Model, beta=500, **kwargs) -> None:
+    def __init__(self, encoder: models.Model, decoder: models.Model, beta: int = 500, **kwargs) -> None:
         super(VariationalAutoEncoder, self).__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
