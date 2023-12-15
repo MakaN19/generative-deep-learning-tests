@@ -26,7 +26,7 @@ def build_encoder(
     encoder = models.Model(encoder_in, encoder_out)
 
     if print_summary:
-        print(encoder.summary())
+        encoder.summary()
 
     return encoder, shape_before_flatten, encoder_in, encoder_out
 
@@ -54,6 +54,6 @@ def build_decoder(
 
     decoder = models.Model(decoder_in, decoder_out)
     if print_summary:
-        print(decoder.summary())
+        decoder.summary()
 
     return decoder
